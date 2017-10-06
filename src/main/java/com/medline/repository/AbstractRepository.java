@@ -12,7 +12,7 @@ import com.medline.model.Abstract;
 public interface AbstractRepository {
 
 	@Select("SELECT "
-			+ "A .pmid,"
+			+ " A .pmid,"
 		    + "	A .art_arttitle as title,"
 		    + "	A .art_journal_title as journal_title,"
        		+ "	AT.value as abstract,"

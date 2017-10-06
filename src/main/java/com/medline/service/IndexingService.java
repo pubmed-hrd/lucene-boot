@@ -37,6 +37,9 @@ public class IndexingService {
 	@Value("${app.isAppend:true}")
 	private boolean isAppend;
 	
+	@Value("${app.startPage:1}")
+	private Integer startPage;
+	
 	@Autowired
 	public IndexingService(AbstractRepository repository) {
 		this.repository = repository;
@@ -58,16 +61,15 @@ public class IndexingService {
 			
 			Integer totalPages = (int) Math.ceil(27_575_896/limit);
 			
+			List<Abstract> abstracts;
 			for (int page = 1; page <= totalPages; page++) {
 				System.out.println(String.format("-> Start reading %s records[page %s of %s]", limit, page, totalPages));
 				long start = System.currentTimeMillis();
 				
-				List<Abstract> abstracts = repository.findAll(getLimit(), (page - 1) * getLimit());
+				abstracts = repository.findAll(getLimit(), (page - 1) * getLimit());
 				
 				System.out.println(String.format("-> Finish reading from database in %s seconds", (System.currentTimeMillis() - start) * Math.pow(10, -3)));
 				addIndex(writer, abstracts);
-				
-				abstracts = null;
 			}
 			writer.close();
 			return true;
