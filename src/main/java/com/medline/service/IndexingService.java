@@ -62,7 +62,7 @@ public class IndexingService {
 			Integer totalPages = (int) Math.ceil(27_575_896/limit);
 			
 			List<Abstract> abstracts;
-			for (int page = 1; page <= totalPages; page++) {
+			for (int page = startPage; page <= totalPages; page++) {
 				System.out.println(String.format("-> Start reading %s records[page %s of %s]", limit, page, totalPages));
 				long start = System.currentTimeMillis();
 				
