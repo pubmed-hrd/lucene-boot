@@ -1,8 +1,11 @@
 package com.medline.service;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Paths;
 import java.util.List;
+
+import javax.annotation.PostConstruct;
 
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
@@ -20,34 +23,33 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import com.medline.model.Abstract;
-import com.medline.repository.AbstractRepository;
 
 @Service
 public class IndexingService {
 
 	private Analyzer analyzer;
-	private AbstractRepository repository;
+	private FileReaderService fr;
 	
-	@Value("${app.limit:100000}")
+	@Value("${app.limit}")
 	private Integer limit;
 	
-	/*@Value("${app.indexPath:/mnt/disk3/luceneIndex}")
+	@Value("${app.indexPath}")
 	private String indexPath;
 	
 	@Value("${app.isAppend:false}")
-	private boolean isAppend;*/
+	private boolean isAppend;
 	
 	@Value("${app.startPage:1}")
 	private Integer startPage;
 	
 	@Autowired
-	public IndexingService(AbstractRepository repository) {
-		this.repository = repository;
+	public IndexingService(FileReaderService fr) {
+		this.fr = fr;
 	}
 
-	public boolean createIndex(String indexPath, boolean isAppend) {
+	public boolean createIndex() {
 		
-		System.out.println(String.format("%s, %s, %s", indexPath, startPage, limit));
+		System.out.println(String.format("=> READ data from file and INDEX data. [Path: %s, StartPage: %s, Limit: %s]", indexPath, startPage, limit));
 		try {
 			analyzer = new StandardAnalyzer();
 
@@ -61,17 +63,27 @@ public class IndexingService {
 			}			
 			IndexWriter writer = new IndexWriter(dir, config);
 			
-			Integer totalPages = (int) Math.ceil(27_575_896/limit);
-			
-			for (int page = 1; page <= 10; page++) {
-				System.out.println(String.format("-> Start reading %s records[page %s of %s]", limit, page, totalPages));
-				long start = System.currentTimeMillis();
+			long start = System.currentTimeMillis();
+			for (String file: fr.findFiles()) {
+				List<Abstract> abstracts = fr.read(file);
+				System.out.println(String.format("-> Start indexing file: %s...", file));
 				
-				List<Abstract> abstracts = repository.findAll(getLimit(), (page - 1) * getLimit());
-				
-				System.out.println(String.format("-> Finish reading from database in %s seconds", (System.currentTimeMillis() - start) * Math.pow(10, -3)));
-				addIndex(writer, abstracts);
-				abstracts = null;
+				for(Abstract abs: abstracts){
+					try{
+						Document doc = new Document();
+						if(abs.getValue() != null){
+							doc.add(new TextField("title", abs.getTitle(), Field.Store.YES));
+							doc.add(new TextField("abstract", abs.getValue(), Field.Store.YES));
+							doc.add(new TextField("journalTitle", abs.getJournalTitle(), Field.Store.YES));
+							doc.add(new StringField("date", abs.getDate(), Field.Store.YES));
+							doc.add(new StringField("pmid", abs.getPmid(), Field.Store.YES));
+							writer.addDocument(doc);
+						}
+					}catch(Exception ex){
+						System.out.println("Exception: " + ex.getMessage() + ", " + abs);
+					}
+				}
+				System.out.println(String.format("-> Finish indexing file: %s in seconds.\n", (System.currentTimeMillis() - start) * Math.pow(10, -3)));
 			}
 			writer.close();
 			return true;
@@ -80,39 +92,14 @@ public class IndexingService {
 			return false;
 		}
 	}
-
-	private void addIndex(IndexWriter write, List<Abstract> abstracts) throws IOException {
-		System.out.println(String.format("-> Start indexing %s pmid...", abstracts.size()));
-		long start = System.currentTimeMillis();
-		for (Abstract abs : abstracts) {
-			try{
-				Document doc = new Document();
-				if(abs.getValue() != null){
-					doc.add(new TextField("title", abs.getTitle(), Field.Store.YES));
-					doc.add(new TextField("abstract", abs.getValue(), Field.Store.YES));
-					doc.add(new TextField("journalTitle", abs.getJournalTitle(), Field.Store.YES));
-					doc.add(new StringField("date", abs.getDate(), Field.Store.YES));
-					doc.add(new StringField("pmid", abs.getPmid(), Field.Store.YES));
-					write.addDocument(doc);
-				}
-			}catch(Exception ex){
-				System.out.println("Exception: " + ex.getMessage() + ", " + abs);
-			}
+	
+	@PostConstruct
+	public void checkIndexPath(){
+		File file = new File(indexPath);
+		if(!file.exists()){
+			file.mkdirs();
+			System.out.println(String.format("Folder: %s created!", indexPath));
 		}
-		System.out.println(String.format("-> Finish indexing in %s seconds.\n", (System.currentTimeMillis() - start) * Math.pow(10, -3)));
 	}
 
-	
-	public Integer getLimit() {
-		return limit;
-	}
-
-	public void setLimit(Integer limit) {
-		this.limit = limit;
-	}
-	
-	
-	
-	
-	
 }

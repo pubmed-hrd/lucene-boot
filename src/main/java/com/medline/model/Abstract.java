@@ -1,6 +1,10 @@
 package com.medline.model;
 
-public class Abstract {
+import java.io.Serializable;
+
+public class Abstract implements Serializable{
+
+	private static final long serialVersionUID = 1L;
 	private String pmid;
 	private String title;
 	private String value;
