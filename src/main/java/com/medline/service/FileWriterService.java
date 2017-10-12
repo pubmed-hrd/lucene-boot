@@ -50,7 +50,7 @@ public class FileWriterService {
 	}
 
 	private void writeToFile(List<Abstract> abstracts, Integer page){
-		System.out.println(String.format("=> Writing %s absatract of page %s to file...", abstracts.size(), page));
+		System.out.println(String.format("-> Writing %s -> %s/page%s.out...", abstracts.size(), filePath, page));
 		long start = System.currentTimeMillis();
 		try {
 			PrintWriter pw = new PrintWriter(new File(filePath + String.format("/page%s.out", page)));
@@ -61,7 +61,7 @@ public class FileWriterService {
 		} catch (Exception ex){
 			System.out.println(ex.getMessage());
 		} finally{
-			System.out.println(String.format("-> Finish writing file in %s seconds", (System.currentTimeMillis() - start) * Math.pow(10, -3)));
+			System.out.println(String.format("-> Finish writing file in %s seconds\n", (System.currentTimeMillis() - start) * Math.pow(10, -3)));
 		}
 	}
 	
