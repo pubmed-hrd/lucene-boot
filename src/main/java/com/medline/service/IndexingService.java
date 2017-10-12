@@ -31,11 +31,11 @@ public class IndexingService {
 	@Value("${app.limit:100000}")
 	private Integer limit;
 	
-	@Value("${app.indexPath:/mnt/disk3/luceneIndex}")
+	/*@Value("${app.indexPath:/mnt/disk3/luceneIndex}")
 	private String indexPath;
 	
-	@Value("${app.isAppend:true}")
-	private boolean isAppend;
+	@Value("${app.isAppend:false}")
+	private boolean isAppend;*/
 	
 	@Value("${app.startPage:1}")
 	private Integer startPage;
@@ -45,7 +45,9 @@ public class IndexingService {
 		this.repository = repository;
 	}
 
-	public boolean createIndex() {
+	public boolean createIndex(String indexPath, boolean isAppend) {
+		
+		System.out.println(String.format("%s, %s, %s", indexPath, startPage, limit));
 		try {
 			analyzer = new StandardAnalyzer();
 
@@ -61,15 +63,15 @@ public class IndexingService {
 			
 			Integer totalPages = (int) Math.ceil(27_575_896/limit);
 			
-			List<Abstract> abstracts;
-			for (int page = startPage; page <= totalPages; page++) {
+			for (int page = 1; page <= 10; page++) {
 				System.out.println(String.format("-> Start reading %s records[page %s of %s]", limit, page, totalPages));
 				long start = System.currentTimeMillis();
 				
-				abstracts = repository.findAll(getLimit(), (page - 1) * getLimit());
+				List<Abstract> abstracts = repository.findAll(getLimit(), (page - 1) * getLimit());
 				
 				System.out.println(String.format("-> Finish reading from database in %s seconds", (System.currentTimeMillis() - start) * Math.pow(10, -3)));
 				addIndex(writer, abstracts);
+				abstracts = null;
 			}
 			writer.close();
 			return true;
@@ -99,6 +101,7 @@ public class IndexingService {
 		}
 		System.out.println(String.format("-> Finish indexing in %s seconds.\n", (System.currentTimeMillis() - start) * Math.pow(10, -3)));
 	}
+
 	
 	public Integer getLimit() {
 		return limit;
@@ -107,4 +110,9 @@ public class IndexingService {
 	public void setLimit(Integer limit) {
 		this.limit = limit;
 	}
+	
+	
+	
+	
+	
 }
